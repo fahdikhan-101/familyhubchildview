@@ -320,7 +320,6 @@
 
     <!-- TAB 1: 🏠 DASHBOARD -->
     <div id="tab-home" class="tab-content">
-      <!-- Balance Card -->
       <div class="card balance-card">
         <div class="balance-title">Current Savings</div>
         <div class="balance-val" id="balanceDisplay">Rs. 0</div>
@@ -507,23 +506,24 @@
     const paramApi = urlParams.get('api');
     const paramSheetId = urlParams.get('sheetId');
 
-    // Persist API and Sheet ID so children never have to enter parameters twice
+    // Decode and persist if present in the URL
     if (paramApi) {
-      localStorage.setItem('family_api_url', paramApi);
+      localStorage.setItem('family_api_url', decodeURIComponent(paramApi));
     }
     if (paramSheetId) {
-      localStorage.setItem('family_sheet_id', paramSheetId);
-    }
-
-    // Clean address bar so the raw URL stays tidy
-    if (paramApi || paramSheetId) {
-      try {
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } catch (e) {}
+      localStorage.setItem('family_sheet_id', decodeURIComponent(paramSheetId));
     }
 
     let SCRIPT_URL = localStorage.getItem('family_api_url') || "";
     let TARGET_SHEET_ID = localStorage.getItem('family_sheet_id') || "";
+
+    // Clean address bar after reading parameters
+    if (window.history && (paramApi || paramSheetId)) {
+      try {
+        const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+      } catch (e) {}
+    }
 
     // App state
     let activeCurrency = "Rs. ";
@@ -547,7 +547,6 @@
         if (sheetId) localStorage.setItem('family_sheet_id', sheetId);
         window.location.reload();
       } catch (err) {
-        // Assume direct endpoint
         localStorage.setItem('family_api_url', rawVal);
         window.location.reload();
       }
@@ -575,7 +574,6 @@
     }
 
     function init() {
-      // If endpoint is not found, prompt for connection link
       if (!SCRIPT_URL) {
         document.getElementById('loginCard').style.display = 'none';
         document.getElementById('configCard').style.display = 'block';
@@ -993,7 +991,7 @@
       fetch(`${SCRIPT_URL}?sheetId=${encodeURIComponent(TARGET_SHEET_ID)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'submitChore', token: token, choreId: choreId, sheetId: TARGET_SHEET_ID })
+        body: JSON.stringify({ action: 'submitChore', token, choreId, sheetId: TARGET_SHEET_ID })
       })
       .then(res => res.json())
       .then(res => {
