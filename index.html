@@ -732,18 +732,21 @@
     // =========================================================
     // SMART GOAL ROADMAP & PENALTY PROTECTION CALCULATOR
     // =========================================================
+// ========================================================================
+    // INTELLIGENT FINANCIAL COACH & GOAL STRATEGY SOLVER
+    // ========================================================================
     function generateGoalRoadmapHtml(goal) {
       const needed = Math.max(0, goal.targetAmount - currentChildBalance);
       if (needed === 0) {
         return `
           <div class="goal-roadmap" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
-            <strong style="color: var(--success);">🎉 Target Reached!</strong>
-            <div style="color: #cbd5e1; margin-top:2px;">You have enough savings to buy this item right now! Ask your parents to make the purchase.</div>
+            <strong style="color: var(--success);">🎉 Goal Ready!</strong>
+            <div style="color: #cbd5e1; margin-top:2px;">You already have enough savings to buy this item! Ask your parents to make the purchase.</div>
           </div>
         `;
       }
 
-      // 1. Calculate Recurring Allowance Velocity
+      // 1. Calculate Recurring Weekly Allowance Baseline
       let weeklyAllowance = 0;
       activeSchedules.forEach(s => {
         const freq = String(s.frequency || '').toUpperCase();
@@ -755,8 +758,10 @@
         }
       });
 
-      // 2. Upcoming Annual / Specific Events (e.g. Birthday, Eid)
-      let annualNotice = '';
+      // 2. Identify Upcoming Calendar Milestones (Birthdays / Eid)
+      let upcomingBonus = 0;
+      let upcomingEventName = '';
+      let upcomingEventDays = 999;
       const now = new Date();
       const currentYear = now.getFullYear();
 
@@ -770,53 +775,69 @@
             if (eventDate < now) eventDate.setFullYear(currentYear + 1);
 
             const diffDays = Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            const amt = Number(s.amount) || 0;
-            annualNotice += `
-              <div style="margin-top: 5px;">
-                <span class="roadmap-badge badge-event">Upcoming Event</span> 
-                <strong>${s.title}</strong> (${s.scheduleDay} in ~${diffDays} days) will boost you by <strong>+${activeCurrency}${amt.toFixed(0)}</strong>!
-              </div>
-            `;
+            if (diffDays < upcomingEventDays) {
+              upcomingEventDays = diffDays;
+              upcomingBonus = Number(s.amount) || 0;
+              upcomingEventName = s.title;
+            }
           }
         }
       });
 
-      // 3. Timeline Estimation
-      let timelineHtml = '';
+      // 3. Find Primary Chores for Boosts
+      const sortedChores = [...activeChores].sort((a, b) => b.reward - a.reward);
+      const primaryChore = sortedChores.length > 0 ? sortedChores[0] : null;
+
+      // 4. Formulate Smart Strategy Narrative
+      let coachingNarrative = '';
+      
+      // Scenario A: Goal can be met with passive pocket money
       if (weeklyAllowance > 0) {
-        const weeks = Math.ceil(needed / weeklyAllowance);
-        timelineHtml = `
-          <div>
-            <span class="roadmap-badge badge-time">Allowance Pace</span> 
-            Just by waiting for your regular pocket money (+${activeCurrency}${Math.round(weeklyAllowance)}/week), you will reach this in <strong>~${weeks} week${weeks > 1 ? 's' : ''}</strong>.
-          </div>
-        `;
+        const passiveWeeks = Math.ceil(needed / weeklyAllowance);
+
+        // Check if an upcoming event lands before this passive target
+        if (upcomingBonus > 0 && upcomingEventDays <= (passiveWeeks * 7)) {
+          const afterEventNeeded = Math.max(0, needed - upcomingBonus);
+          const afterEventWeeks = Math.ceil(afterEventNeeded / weeklyAllowance);
+          
+          if (afterEventNeeded === 0) {
+            coachingNarrative = `Your <strong>${upcomingEventName}</strong> in ~${upcomingEventDays} days (+${activeCurrency}${upcomingBonus}) will cover this completely! Just keep your current savings safe until then.`;
+          } else {
+            coachingNarrative = `With your <strong>${upcomingEventName}</strong> coming up in ~${upcomingEventDays} days (+${activeCurrency}${upcomingBonus}), you only need <strong>${afterEventWeeks} week${afterEventWeeks > 1 ? 's' : ''}</strong> of pocket money to reach this goal.`;
+          }
+        } 
+        // Scenario B: Standard multi-week goal (Combine allowance + realistic chore acceleration)
+        else if (passiveWeeks > 1 && primaryChore && primaryChore.reward > 0) {
+          const targetFastWeeks = Math.max(1, Math.floor(passiveWeeks / 2));
+          const coveredByAllowance = targetFastWeeks * weeklyAllowance;
+          const remainingChoreDebt = Math.max(0, needed - coveredByAllowance);
+          const choreCount = Math.ceil(remainingChoreDebt / primaryChore.reward);
+
+          if (choreCount > 0 && choreCount <= 15) {
+            coachingNarrative = `If you save your pocket money for the next <strong>${targetFastWeeks} week${targetFastWeeks > 1 ? 's' : ''}</strong> and do <strong>${primaryChore.title} ${choreCount} times</strong>, you can get this in just <strong>${targetFastWeeks} week${targetFastWeeks > 1 ? 's' : ''}</strong> instead of waiting ${passiveWeeks} weeks!`;
+          } else {
+            coachingNarrative = `At your normal allowance pace (+${activeCurrency}${Math.round(weeklyAllowance)}/wk), you will achieve this in <strong>${passiveWeeks} weeks</strong>. Doing a few chores each week will help you reach it even faster.`;
+          }
+        } 
+        else {
+          coachingNarrative = `You're super close! Just <strong>${passiveWeeks} week</strong> of pocket money will get you there.`;
+        }
+      } 
+      // Scenario C: No scheduled pocket money (Chore-driven strategy)
+      else if (primaryChore && primaryChore.reward > 0) {
+        const totalChores = Math.ceil(needed / primaryChore.reward);
+        if (totalChores <= 5) {
+          coachingNarrative = `You only need to complete <strong>${primaryChore.title} ${totalChores} time${totalChores > 1 ? 's' : ''}</strong> to unlock this goal!`;
+        } else {
+          const weeklyPace = Math.ceil(totalChores / 2);
+          coachingNarrative = `If you aim to do <strong>${primaryChore.title} ${weeklyPace} times a week</strong>, you can buy this in just <strong>2 weeks</strong>!`;
+        }
       } else {
-        timelineHtml = `
-          <div>
-            <span class="roadmap-badge badge-time">Allowance Pace</span> 
-            No recurring pocket money configured. Complete chores to reach this goal!
-          </div>
-        `;
+        coachingNarrative = `You need <strong>${activeCurrency}${needed}</strong> more to unlock this goal. Complete available chores to build up your savings!`;
       }
 
-      // 4. Fast-Track Chore Accelerator
-      let choreHtml = '';
-      if (activeChores && activeChores.length > 0) {
-        const sortedChores = [...activeChores].sort((a, b) => b.reward - a.reward);
-        const topChore = sortedChores[0];
-        const choresNeeded = Math.ceil(needed / topChore.reward);
-
-        choreHtml = `
-          <div style="margin-top: 5px;">
-            <span class="roadmap-badge badge-fast">Fast Track</span> 
-            Want it today? Complete <strong>${choresNeeded}× ${topChore.title}</strong> (+${activeCurrency}${topChore.reward} each) to reach your goal immediately!
-          </div>
-        `;
-      }
-
-      // 5. Personalized Penalty Protection (Behavioral Coaching)
-      let penaltyHtml = '';
+      // 5. Behavioral Penalty Protection (Specific Habits to Avoid)
+      let penaltyCoaching = '';
       const pastPenalties = rawHistory.filter(tx => String(tx.type).toLowerCase() === 'penalty');
 
       if (pastPenalties.length > 0) {
@@ -829,11 +850,11 @@
         const topInfraction = Object.keys(freqMap).sort((a, b) => freqMap[b] - freqMap[a])[0];
         const lastPenaltyAmt = Math.abs(pastPenalties[0].amount || 0);
 
-        penaltyHtml = `
-          <div style="margin-top: 6px; background: rgba(239, 68, 68, 0.08); border-left: 3px solid var(--danger); padding: 6px 10px; border-radius: 6px; color: #fca5a5;">
-            <span style="font-weight: 800; font-size: 0.72rem; text-transform: uppercase;">⚠️ Protect Your Savings</span>
-            <div style="font-size: 0.75rem; color: #e2e8f0; margin-top: 2px;">
-              Avoid <strong>"${topInfraction}"</strong>! Past penalties (around -${activeCurrency}${lastPenaltyAmt.toFixed(0)}) delay your target.
+        penaltyCoaching = `
+          <div style="margin-top: 8px; background: rgba(239, 68, 68, 0.08); border-left: 3px solid var(--danger); padding: 8px 10px; border-radius: 6px; color: #fca5a5;">
+            <span style="font-weight: 800; font-size: 0.72rem; text-transform: uppercase;">🛑 Protect Your Target</span>
+            <div style="font-size: 0.76rem; color: #e2e8f0; margin-top: 2px;">
+              Watch out for <strong>"${topInfraction}"</strong>! Avoiding deductions (around -${activeCurrency}${lastPenaltyAmt.toFixed(0)}) will keep your roadmap on track.
             </div>
           </div>
         `;
@@ -841,14 +862,16 @@
 
       return `
         <div class="goal-roadmap">
-          ${timelineHtml}
-          ${annualNotice}
-          ${choreHtml}
-          ${penaltyHtml}
+          <div style="display:flex; align-items:flex-start; gap:8px;">
+            <span style="font-size:1.1rem; line-height:1;">💡</span>
+            <div style="color: #e2e8f0; font-size: 0.82rem; line-height: 1.45;">
+              ${coachingNarrative}
+            </div>
+          </div>
+          ${penaltyCoaching}
         </div>
       `;
     }
-
     function renderGoals() {
       const container = document.getElementById('goalsContainer');
       const homeSpotlight = document.getElementById('homeGoalSpotlight');
