@@ -214,7 +214,7 @@
     }
     .goal-stats { display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); }
 
-    /* Smart Roadmap Box Inside Goal Card */
+    /* Smart Roadmap Box */
     .goal-roadmap {
       margin-top: 10px;
       background: rgba(99, 102, 241, 0.08);
@@ -402,7 +402,7 @@
       </div>
     </div>
 
-    <!-- TAB 2: 🎯 GOALS (ENHANCED ROADMAP) -->
+    <!-- TAB 2: 🎯 GOALS (ROADMAP & PENALTY PROTECTION) -->
     <div id="tab-goals" class="tab-content">
       <div class="card" style="border-left: 4px solid var(--accent);">
         <h3>🎯 My Saving Targets & Roadmap</h3>
@@ -730,7 +730,7 @@
     }
 
     // =========================================================
-    // SMART GOAL ROADMAP CALCULATOR
+    // SMART GOAL ROADMAP & PENALTY PROTECTION CALCULATOR
     // =========================================================
     function generateGoalRoadmapHtml(goal) {
       const needed = Math.max(0, goal.targetAmount - currentChildBalance);
@@ -743,47 +743,108 @@
         `;
       }
 
-      // 1. Calculate Recurring Weekly Allowance
-      let weeklyTotal = 0;
+      // 1. Calculate Recurring Allowance Velocity
+      let weeklyAllowance = 0;
       activeSchedules.forEach(s => {
-        if (s.frequency === 'WEEKLY') weeklyTotal += Number(s.amount) || 0;
+        const freq = String(s.frequency || '').toUpperCase();
+        const amt = Number(s.amount) || 0;
+        if (freq === 'WEEKLY') {
+          weeklyAllowance += amt;
+        } else if (freq === 'MONTHLY') {
+          weeklyAllowance += (amt / 4.33);
+        }
       });
 
-      // 2. Look for Upcoming Annual Event Payout (e.g. Birthday / Eid)
+      // 2. Upcoming Annual / Specific Events (e.g. Birthday, Eid)
       let annualNotice = '';
-      const annualSched = activeSchedules.find(s => s.frequency === 'ANNUAL_DATE');
-      if (annualSched) {
-        annualNotice = `<div><span class="roadmap-badge badge-event">Upcoming Event</span> <strong>${annualSched.title}</strong> on ${annualSched.scheduleDay} adds <strong>+${activeCurrency}${annualSched.amount}</strong>!</div>`;
-      }
+      const now = new Date();
+      const currentYear = now.getFullYear();
 
-      // 3. Fast-Track Chore Accelerator
-      let choreAdvice = '';
-      if (activeChores.length > 0) {
-        const sortedChores = [...activeChores].sort((a,b) => b.reward - a.reward);
-        const topChore = sortedChores[0];
-        const choresNeeded = Math.ceil(needed / topChore.reward);
-        choreAdvice = `
-          <div style="margin-top:4px;">
-            <span class="roadmap-badge badge-fast">Fast Track</span> 
-            Complete <strong>${choresNeeded}× ${topChore.title}</strong> to unlock this goal immediately!
+      activeSchedules.forEach(s => {
+        if (String(s.frequency).toUpperCase() === 'ANNUAL_DATE') {
+          const parts = String(s.scheduleDay).split('/');
+          if (parts.length === 2) {
+            const day = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            let eventDate = new Date(currentYear, month, day);
+            if (eventDate < now) eventDate.setFullYear(currentYear + 1);
+
+            const diffDays = Math.ceil((eventDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            const amt = Number(s.amount) || 0;
+            annualNotice += `
+              <div style="margin-top: 5px;">
+                <span class="roadmap-badge badge-event">Upcoming Event</span> 
+                <strong>${s.title}</strong> (${s.scheduleDay} in ~${diffDays} days) will boost you by <strong>+${activeCurrency}${amt.toFixed(0)}</strong>!
+              </div>
+            `;
+          }
+        }
+      });
+
+      // 3. Timeline Estimation
+      let timelineHtml = '';
+      if (weeklyAllowance > 0) {
+        const weeks = Math.ceil(needed / weeklyAllowance);
+        timelineHtml = `
+          <div>
+            <span class="roadmap-badge badge-time">Allowance Pace</span> 
+            Just by waiting for your regular pocket money (+${activeCurrency}${Math.round(weeklyAllowance)}/week), you will reach this in <strong>~${weeks} week${weeks > 1 ? 's' : ''}</strong>.
+          </div>
+        `;
+      } else {
+        timelineHtml = `
+          <div>
+            <span class="roadmap-badge badge-time">Allowance Pace</span> 
+            No recurring pocket money configured. Complete chores to reach this goal!
           </div>
         `;
       }
 
-      // 4. Timeline Estimate
-      let timelineText = '';
-      if (weeklyTotal > 0) {
-        const weeks = Math.ceil(needed / weeklyTotal);
-        timelineText = `<div><span class="roadmap-badge badge-time">Allowance Pace</span> You will reach this in <strong>${weeks} week${weeks > 1 ? 's' : ''}</strong> from your regular pocket money (+${activeCurrency}${weeklyTotal}/wk).</div>`;
-      } else {
-        timelineText = `<div><span class="roadmap-badge badge-time">Plan</span> Complete chores to fill the remaining <strong>${activeCurrency}${needed}</strong>.</div>`;
+      // 4. Fast-Track Chore Accelerator
+      let choreHtml = '';
+      if (activeChores && activeChores.length > 0) {
+        const sortedChores = [...activeChores].sort((a, b) => b.reward - a.reward);
+        const topChore = sortedChores[0];
+        const choresNeeded = Math.ceil(needed / topChore.reward);
+
+        choreHtml = `
+          <div style="margin-top: 5px;">
+            <span class="roadmap-badge badge-fast">Fast Track</span> 
+            Want it today? Complete <strong>${choresNeeded}× ${topChore.title}</strong> (+${activeCurrency}${topChore.reward} each) to reach your goal immediately!
+          </div>
+        `;
+      }
+
+      // 5. Personalized Penalty Protection (Behavioral Coaching)
+      let penaltyHtml = '';
+      const pastPenalties = rawHistory.filter(tx => String(tx.type).toLowerCase() === 'penalty');
+
+      if (pastPenalties.length > 0) {
+        const freqMap = {};
+        pastPenalties.forEach(p => {
+          const desc = String(p.desc || 'Penalty').replace(/Penalty:\s*/i, '').trim();
+          freqMap[desc] = (freqMap[desc] || 0) + 1;
+        });
+
+        const topInfraction = Object.keys(freqMap).sort((a, b) => freqMap[b] - freqMap[a])[0];
+        const lastPenaltyAmt = Math.abs(pastPenalties[0].amount || 0);
+
+        penaltyHtml = `
+          <div style="margin-top: 6px; background: rgba(239, 68, 68, 0.08); border-left: 3px solid var(--danger); padding: 6px 10px; border-radius: 6px; color: #fca5a5;">
+            <span style="font-weight: 800; font-size: 0.72rem; text-transform: uppercase;">⚠️ Protect Your Savings</span>
+            <div style="font-size: 0.75rem; color: #e2e8f0; margin-top: 2px;">
+              Avoid <strong>"${topInfraction}"</strong>! Past penalties (around -${activeCurrency}${lastPenaltyAmt.toFixed(0)}) delay your target.
+            </div>
+          </div>
+        `;
       }
 
       return `
         <div class="goal-roadmap">
-          ${timelineText}
-          ${choreAdvice}
+          ${timelineHtml}
           ${annualNotice}
+          ${choreHtml}
+          ${penaltyHtml}
         </div>
       `;
     }
@@ -1064,7 +1125,7 @@
       fetch(`${SCRIPT_URL}?sheetId=${encodeURIComponent(TARGET_SHEET_ID)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'submitChore', token: token, choreId: choreId, sheetId: TARGET_SHEET_ID })
+        body: JSON.stringify({ action: 'submitChore', token, choreId, sheetId: TARGET_SHEET_ID })
       })
       .then(res => res.json())
       .then(res => {
