@@ -180,16 +180,16 @@
     .nav-item.active { color: #38bdf8; }
     .nav-item.active .icon { transform: translateY(-2px); transition: transform 0.2s; }
 
-    /* Goal Cards */
+    /* Goal Cards & Smart Roadmap */
     .goal-card {
       background: rgba(15, 23, 42, 0.6);
       border: 1px solid var(--card-border);
       border-radius: 16px;
       padding: 14px;
-      margin-bottom: 10px;
+      margin-bottom: 14px;
     }
     .goal-header { display: flex; justify-content: space-between; align-items: center; }
-    .goal-title { font-weight: 800; font-size: 0.95rem; color: #fff; }
+    .goal-title { font-weight: 800; font-size: 1rem; color: #fff; }
     .btn-delete-goal {
       background: rgba(239, 68, 68, 0.15);
       border: 1px solid rgba(239, 68, 68, 0.3);
@@ -212,7 +212,30 @@
       border-radius: 9999px;
       transition: width 0.4s ease;
     }
-    .goal-stats { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+    .goal-stats { display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 700; color: var(--text-muted); }
+
+    /* Smart Roadmap Box Inside Goal Card */
+    .goal-roadmap {
+      margin-top: 10px;
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px dashed rgba(99, 102, 241, 0.3);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .roadmap-badge {
+      display: inline-block;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      margin-right: 4px;
+    }
+    .badge-time { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+    .badge-fast { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-event { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
 
     /* Analytics Grid */
     .kid-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
@@ -285,17 +308,15 @@
 
   <div class="container">
 
-    <!-- FIRST TIME PAIRING CARD (Only shown if opened with no family configuration) -->
+    <!-- FIRST TIME PAIRING CARD -->
     <div class="card" id="configCard" style="display: none; text-align: center; padding: 36px 20px; margin-top: 30px;">
       <div style="font-size: 3.2rem; margin-bottom: 8px;">🔗</div>
       <h2 style="margin: 0 0 6px; font-weight: 900; font-size: 1.4rem;">Connect to Family Hub</h2>
       <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 20px;">Please open the link shared by your parent, or paste your family setup link below.</p>
-
       <div class="form-group">
         <label for="manualLinkInput">Family Link</label>
         <input type="text" id="manualLinkInput" placeholder="Paste full setup link here...">
       </div>
-
       <button class="btn btn-blue" onclick="saveManualConfig()">Connect Hub</button>
     </div>
 
@@ -304,17 +325,14 @@
       <div style="font-size: 3.2rem; margin-bottom: 8px;">🚀</div>
       <h2 style="margin: 0 0 6px; font-weight: 900; font-size: 1.5rem;">Family PiggyBank</h2>
       <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 20px;">Pick your name & enter PIN</p>
-
       <div class="form-group">
         <label for="childNameSelect">Hero Name</label>
         <select id="childNameSelect"><option value="">Loading heroes...</option></select>
       </div>
-
       <div class="form-group">
         <label for="pinInput">4-Digit Secret PIN</label>
         <input type="password" id="pinInput" placeholder="••••" maxlength="6" style="text-align:center; letter-spacing:6px; font-size:1.5rem;">
       </div>
-
       <button class="btn btn-blue" onclick="attemptLogin()">✨ Unlock Dashboard</button>
     </div>
 
@@ -325,7 +343,7 @@
         <div class="balance-val" id="balanceDisplay">Rs. 0</div>
       </div>
 
-      <!-- Top Goal Spotlight Preview -->
+      <!-- Top Goal Spotlight Preview with Roadmap -->
       <div class="card" id="homeGoalSpotlight" style="border-left: 4px solid var(--accent); display: none;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
           <h3 style="margin: 0; font-size: 0.95rem;">🎯 Top Wishlist Target</h3>
@@ -384,10 +402,11 @@
       </div>
     </div>
 
-    <!-- TAB 2: 🎯 GOALS -->
+    <!-- TAB 2: 🎯 GOALS (ENHANCED ROADMAP) -->
     <div id="tab-goals" class="tab-content">
       <div class="card" style="border-left: 4px solid var(--accent);">
-        <h3>🎯 My Saving Targets</h3>
+        <h3>🎯 My Saving Targets & Roadmap</h3>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:-6px;">See how fast you can get your goals by doing chores or with your regular pocket money.</p>
         <div id="goalsContainer">Loading goals...</div>
       </div>
 
@@ -407,7 +426,6 @@
 
     <!-- TAB 3: ⚡ MISSIONS & SPENDING & TRANSFERS -->
     <div id="tab-missions" class="tab-content">
-      <!-- Sibling Sharing Card -->
       <div class="card" style="border-left: 4px solid var(--cyan);">
         <h3>🤝 Share with Sibling</h3>
         <p style="font-size:0.82rem; color:var(--text-muted); margin-top:-6px;">Send some of your savings as a gift or loan.</p>
@@ -426,7 +444,6 @@
         <button class="btn btn-cyan" onclick="sendSiblingTransfer()">🎁 Send to Sibling</button>
       </div>
 
-      <!-- Chore Card -->
       <div class="card" style="border-left: 4px solid var(--success);">
         <h3>✅ Finished a Chore?</h3>
         <p style="font-size:0.82rem; color:var(--text-muted); margin-top:-6px;">Submit for parent check to earn your reward.</p>
@@ -437,7 +454,6 @@
         <button class="btn btn-green" onclick="claimChore()">⭐ Submit for Approval</button>
       </div>
 
-      <!-- Expense Card -->
       <div class="card" style="border-left: 4px solid #38bdf8;">
         <h3>💳 Log Expense</h3>
         <p style="font-size:0.82rem; color:var(--text-muted); margin-top:-6px;">Bought something? Subtract it from your savings.</p>
@@ -465,9 +481,7 @@
           <button class="chip" onclick="setTxFilter(this, 'Penalty')">Penalties</button>
           <button class="chip" onclick="setTxFilter(this, 'Expense')">Spent</button>
         </div>
-
         <div id="txList"></div>
-
         <div class="pagination-bar" id="paginationBar">
           <button class="btn-page" id="btnPrevPage" onclick="changePage(-1)">← Previous</button>
           <span id="pageIndicator">Page 1</span>
@@ -506,18 +520,12 @@
     const paramApi = urlParams.get('api');
     const paramSheetId = urlParams.get('sheetId');
 
-    // Decode and persist if present in the URL
-    if (paramApi) {
-      localStorage.setItem('family_api_url', decodeURIComponent(paramApi));
-    }
-    if (paramSheetId) {
-      localStorage.setItem('family_sheet_id', decodeURIComponent(paramSheetId));
-    }
+    if (paramApi) localStorage.setItem('family_api_url', decodeURIComponent(paramApi));
+    if (paramSheetId) localStorage.setItem('family_sheet_id', decodeURIComponent(paramSheetId));
 
     let SCRIPT_URL = localStorage.getItem('family_api_url') || "";
     let TARGET_SHEET_ID = localStorage.getItem('family_sheet_id') || "";
 
-    // Clean address bar after reading parameters
     if (window.history && (paramApi || paramSheetId)) {
       try {
         const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
@@ -529,6 +537,8 @@
     let activeCurrency = "Rs. ";
     let rawHistory = [];
     let childGoals = [];
+    let activeChores = [];
+    let activeSchedules = [];
     let availableSiblings = [];
     let currentChildBalance = 0;
     let currentFilter = 'ALL';
@@ -653,6 +663,8 @@
         if (data.currency) activeCurrency = data.currency;
         rawHistory = data.history || [];
         childGoals = data.goals || [];
+        activeChores = data.chores || [];
+        activeSchedules = data.schedules || [];
         availableSiblings = data.siblings || [];
         currentChildBalance = Number(data.balance) || 0;
 
@@ -690,15 +702,15 @@
         // Chores Catalog
         const choreSel = document.getElementById('choreSelect');
         choreSel.innerHTML = '';
-        if (!data.chores || data.chores.length === 0) {
+        if (!activeChores || activeChores.length === 0) {
           choreSel.innerHTML = '<option value="">No chores available</option>';
         } else {
-          data.chores.forEach(c => {
+          activeChores.forEach(c => {
             choreSel.innerHTML += `<option value="${c.id}">${c.title} (+${activeCurrency}${Number(c.reward).toFixed(0)})</option>`;
           });
         }
 
-        // Sibling Select Dropdown
+        // Sibling Select
         const sibSelect = document.getElementById('siblingSelect');
         sibSelect.innerHTML = '';
         if (availableSiblings.length === 0) {
@@ -717,6 +729,65 @@
       .catch(err => alert("Data Load Error: " + err.message));
     }
 
+    // =========================================================
+    // SMART GOAL ROADMAP CALCULATOR
+    // =========================================================
+    function generateGoalRoadmapHtml(goal) {
+      const needed = Math.max(0, goal.targetAmount - currentChildBalance);
+      if (needed === 0) {
+        return `
+          <div class="goal-roadmap" style="background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3);">
+            <strong style="color: var(--success);">🎉 Target Reached!</strong>
+            <div style="color: #cbd5e1; margin-top:2px;">You have enough savings to buy this item right now! Ask your parents to make the purchase.</div>
+          </div>
+        `;
+      }
+
+      // 1. Calculate Recurring Weekly Allowance
+      let weeklyTotal = 0;
+      activeSchedules.forEach(s => {
+        if (s.frequency === 'WEEKLY') weeklyTotal += Number(s.amount) || 0;
+      });
+
+      // 2. Look for Upcoming Annual Event Payout (e.g. Birthday / Eid)
+      let annualNotice = '';
+      const annualSched = activeSchedules.find(s => s.frequency === 'ANNUAL_DATE');
+      if (annualSched) {
+        annualNotice = `<div><span class="roadmap-badge badge-event">Upcoming Event</span> <strong>${annualSched.title}</strong> on ${annualSched.scheduleDay} adds <strong>+${activeCurrency}${annualSched.amount}</strong>!</div>`;
+      }
+
+      // 3. Fast-Track Chore Accelerator
+      let choreAdvice = '';
+      if (activeChores.length > 0) {
+        const sortedChores = [...activeChores].sort((a,b) => b.reward - a.reward);
+        const topChore = sortedChores[0];
+        const choresNeeded = Math.ceil(needed / topChore.reward);
+        choreAdvice = `
+          <div style="margin-top:4px;">
+            <span class="roadmap-badge badge-fast">Fast Track</span> 
+            Complete <strong>${choresNeeded}× ${topChore.title}</strong> to unlock this goal immediately!
+          </div>
+        `;
+      }
+
+      // 4. Timeline Estimate
+      let timelineText = '';
+      if (weeklyTotal > 0) {
+        const weeks = Math.ceil(needed / weeklyTotal);
+        timelineText = `<div><span class="roadmap-badge badge-time">Allowance Pace</span> You will reach this in <strong>${weeks} week${weeks > 1 ? 's' : ''}</strong> from your regular pocket money (+${activeCurrency}${weeklyTotal}/wk).</div>`;
+      } else {
+        timelineText = `<div><span class="roadmap-badge badge-time">Plan</span> Complete chores to fill the remaining <strong>${activeCurrency}${needed}</strong>.</div>`;
+      }
+
+      return `
+        <div class="goal-roadmap">
+          ${timelineText}
+          ${choreAdvice}
+          ${annualNotice}
+        </div>
+      `;
+    }
+
     function renderGoals() {
       const container = document.getElementById('goalsContainer');
       const homeSpotlight = document.getElementById('homeGoalSpotlight');
@@ -725,7 +796,7 @@
       container.innerHTML = '';
 
       if (childGoals.length === 0) {
-        container.innerHTML = '<p style="margin:0; color:var(--text-muted); font-size:0.85rem;">No goals yet. Add one below!</p>';
+        container.innerHTML = '<p style="margin:0; color:var(--text-muted); font-size:0.85rem;">No goals yet. Set your first goal below!</p>';
         if (homeSpotlight) homeSpotlight.style.display = 'none';
         return;
       }
@@ -748,8 +819,9 @@
           </div>
           <div class="goal-stats">
             <span>Target: ${activeCurrency}${topGoal.targetAmount}</span>
-            <span>${topAchieved ? 'Ready!' : 'Need ' + activeCurrency + Math.max(0, topGoal.targetAmount - currentChildBalance)}</span>
+            <span>${topAchieved ? 'Unlocked!' : 'Need ' + activeCurrency + Math.max(0, topGoal.targetAmount - currentChildBalance)}</span>
           </div>
+          ${generateGoalRoadmapHtml(topGoal)}
         `;
       }
 
@@ -773,8 +845,9 @@
             </div>
             <div class="goal-stats">
               <span>Goal: ${activeCurrency}${g.targetAmount}</span>
-              <span>${achieved ? 'Goal Unlocked!' : 'Need ' + activeCurrency + Math.max(0, g.targetAmount - currentChildBalance)}</span>
+              <span>${achieved ? 'Unlocked!' : 'Need ' + activeCurrency + Math.max(0, g.targetAmount - currentChildBalance)}</span>
             </div>
+            ${generateGoalRoadmapHtml(g)}
           </div>
         `;
       });
@@ -991,7 +1064,7 @@
       fetch(`${SCRIPT_URL}?sheetId=${encodeURIComponent(TARGET_SHEET_ID)}`, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'submitChore', token, choreId, sheetId: TARGET_SHEET_ID })
+        body: JSON.stringify({ action: 'submitChore', token: token, choreId: choreId, sheetId: TARGET_SHEET_ID })
       })
       .then(res => res.json())
       .then(res => {
