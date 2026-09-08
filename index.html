@@ -622,7 +622,14 @@
         mode: "cors",
         redirect: "follow"
       })
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error("Server temporarily busy. Please refresh.");
+        }
+      })
       .then(data => {
         if (data.error) throw new Error(data.error);
         if (data.currency) activeCurrency = data.currency;
@@ -653,7 +660,14 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'childLogin', childName: name, pin: pin, sheetId: TARGET_SHEET_ID })
       })
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error("Login failed to parse response.");
+        }
+      })
       .then(res => {
         if (res.success) {
           sessionStorage.setItem('child_token', res.token);
@@ -668,13 +682,20 @@
       .catch(err => alert("Login Error: " + err.message));
     }
 
-    function loadChildData(token) {
+    function loadChildData(token, retryCount = 0) {
       fetch(`${SCRIPT_URL}?format=json&childToken=${encodeURIComponent(token)}&sheetId=${encodeURIComponent(TARGET_SHEET_ID)}`, {
         method: "GET",
         mode: "cors",
         redirect: "follow"
       })
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error("Server temporarily busy.");
+        }
+      })
       .then(data => {
         if (data.error) { logout(); return; }
         if (data.currency) activeCurrency = data.currency;
@@ -744,7 +765,13 @@
         renderChildAnalytics();
         renderTransactions();
       })
-      .catch(err => alert("Data Load Error: " + err.message));
+      .catch(err => {
+        if (retryCount < 2) {
+          setTimeout(() => loadChildData(token, retryCount + 1), 1000);
+        } else {
+          alert("Slow connection detected. Please refresh if your data doesn't appear.");
+        }
+      });
     }
 
     // ========================================================================
@@ -883,7 +910,7 @@
         `;
       }
 
-      // 6. Interactive AI Coach Widget (Rendered only when isAiAvailable === true)
+      // 6. Interactive AI Coach Widget
       let aiCoachWidget = "";
       if (isAiAvailable) {
         const safeGoalTitle = encodeURIComponent(goal.title);
@@ -941,7 +968,14 @@
           sheetId: TARGET_SHEET_ID
         })
       })
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (e) {
+          throw new Error("Server temporarily busy or returned HTML error.");
+        }
+      })
       .then(data => {
         if (data.error) throw new Error(data.error);
         box.innerHTML = `<strong>🤖 PiggyCoach:</strong><div style="margin-top:4px;">${data.advice.replace(/\n/g, '<br>')}</div>`;
@@ -1028,13 +1062,17 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'createGoal', token, title, targetAmount, sheetId: TARGET_SHEET_ID })
       })
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        return JSON.parse(text);
+      })
       .then(() => {
         document.getElementById('goalTitleInput').value = '';
         document.getElementById('goalAmountInput').value = '';
         triggerConfetti();
         loadChildData(token);
-      });
+      })
+      .catch(err => alert("Error adding goal: " + err.message));
     }
 
     function deleteGoal(goalId) {
@@ -1046,8 +1084,12 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'deleteGoal', token, goalId, sheetId: TARGET_SHEET_ID })
       })
-      .then(res => res.json())
-      .then(() => loadChildData(token));
+      .then(async res => {
+        const text = await res.text();
+        return JSON.parse(text);
+      })
+      .then(() => loadChildData(token))
+      .catch(err => alert("Error deleting goal: " + err.message));
     }
 
     function setChildTimeframe(btn, tf) {
@@ -1207,7 +1249,10 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'transferCredits', token, recipientName, amount, note, sheetId: TARGET_SHEET_ID })
       })
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        return JSON.parse(text);
+      })
       .then(res => {
         if (res.error) throw new Error(res.error);
         triggerConfetti();
@@ -1229,7 +1274,10 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'submitChore', token: token, choreId: choreId, sheetId: TARGET_SHEET_ID })
       })
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        return JSON.parse(text);
+      })
       .then(res => {
         if (res.error) throw new Error(res.error);
         triggerConfetti();
@@ -1249,7 +1297,10 @@
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'submitExpense', token, amount, desc, sheetId: TARGET_SHEET_ID })
       })
-      .then(res => res.json())
+      .then(async res => {
+        const text = await res.text();
+        return JSON.parse(text);
+      })
       .then(res => {
         if (res.error) throw new Error(res.error);
         document.getElementById('spendAmt').value = '';
